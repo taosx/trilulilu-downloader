@@ -7,13 +7,17 @@ Author: sharkyz of rstforums.com
 
 import re
 from multiprocessing.pool import ThreadPool as Pool
-import pyprind
 import requests
 import bs4
+import time
+import curses
+import sys #, os
 
+#Terminal remaker
+stdscr = curses.initscr()
+curses.start_color()
 
-url = 'http://www.trilulilu.ro/bate-palma-cu-pisica-d'
-
+url = 'http://www.trilulilu.ro/video-film/pitbull-ay-chico-lengua-afuera-1'
 
 class commands(object):
     def __init__(self, httpadress):
@@ -47,8 +51,6 @@ class commands(object):
         title_chooser = page_title.split(' - ') # Split the title wherever '-' and create a list with elements
 
 
-
-
         # Search for the right link to download
         for link in video_test:
             respond = requests.get(link, stream=True)
@@ -61,40 +63,50 @@ class commands(object):
                     local_name_file = '{} - {}.flv'.format(title_chooser[0],title_chooser[1])
                 else:
                     print('Download stopped, not recognizable format!')
-                print('Downloading now...\nFile:{}\nSize:{}M'.format(local_name_file, round(file_size / 1000/ 1000, 2)))
-                # Progress Bar
-                bar = pyprind.ProgBar(file_size / 1024, monitor=True)
+                stdscr.addstr(0, 0,'Downloading now...\nFile:{}\nSize:{}M'.format(local_name_file, round(file_size / 1000/ 1000, 2)))
+
                 file_downloaded_size = 0
                 with open(local_name_file, 'wb') as f:
+                    dl = 0
+                    count = 0
+                    start_time_local = time.mktime(time.localtime())
+                    # Progress
                     for chunk in respond.iter_content(chunk_size=1024):
                         if chunk:
-                            file_downloaded_size += 1024
+                            count += 1
+                            dl += len(chunk)
                             f.write(chunk)
+                            end_time_local = time.mktime(time.localtime())
                             f.flush()
-                            bar.update()
-                    print()
-                    print(bar)
+                        if end_time_local > start_time_local:
+                            dl_speed_raw = dl / (end_time_local - start_time_local)
+                            stdscr.addstr(3, 0,'|{}|'.format('=' * 49))
+                            percent_text = dl * 100 / file_size
 
+                            for i in range(round(percent_text/2)):
+                                x = 49 - i
+                                stdscr.addstr(4, 0,'|{}{}|'.format('#' * i, '-' * x))
 
+                            # Format of completed (perfection)
 
+                            if len(str(round(percent_text))) == 1:
+                                stdscr.addstr(5, 0,'|{es}{cd}{ee}|'.format(es=('=' * 17),cd=(' {:.0f}% completed  '.format(percent_text)),ee =('=' * 17)))
+                            elif len(str(round(percent_text))) == 3:
+                                stdscr.addstr(5, 0,'|{es}{cd}{ee}|'.format(es=('=' * 17),cd=(' {:.0f}% completed '.format(percent_text)),ee =('=' * 16)))
+                            else:
+                                stdscr.addstr(5, 0,'|{es}{cd}{ee}|'.format(es=('=' * 17),cd=(' {:.0f}% completed '.format(percent_text)),ee =('=' * 17)))
+
+                            stdscr.addstr(6, 0,'Download Speed: {:.2f}Kbps \r'.format(dl_speed_raw / 1000))
+                            stdscr.refresh()
+
+# print('|{}|'.format('=' * 49))
+# print('|#')
+# print('|{es}{cd}{ee}|'.format(es=('=' * 17),cd=(' {}% completed '.format('30')),ee =('=' * 17)))
+
+# 5000 / 100 = 50 *
 
 
 start = commands(url).main_function()
 start
 
 
-"""
-        if __name__ == "__main__":
-            if len(sys.argv) == 1:
-                url = input('URL: ')
-                start = commands(url)
-                start.main_function()
-                #start.dlfile(start.afrp())
-            elif len(sys.argv) == 2:
-                url = sys.argv[1]
-                start = commands(url)
-                start.afrp()
-            else:
-                print('Please try again, you\'re drunk!')
-
-"""
