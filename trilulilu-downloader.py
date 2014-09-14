@@ -10,18 +10,19 @@ from multiprocessing.pool import ThreadPool as Pool
 import requests
 import bs4
 import time
-import curses
+#import curses
 import sys #, os
 
 #Terminal remaker
-stdscr = curses.initscr()
-curses.start_color()
+#stdscr = curses.initscr()
+#curses.start_color()
 
 url = 'http://www.trilulilu.ro/video-film/pitbull-ay-chico-lengua-afuera-1'
 
 class commands(object):
     def __init__(self, httpadress):
         self.httpadress = httpadress
+
 
     def main_function(self):  # Acess, Find, Rewrite, Download
         pool = Pool(2)
@@ -32,18 +33,18 @@ class commands(object):
         values = re.findall(r'(?<=:)(?:"(.*?)"|\d+)', locatescript)
         vovu = dict(zip(keys, values))
 
-        video_test = ['http://fs{servers}.trilulilu.ro/stream.php?type=video&'
+        video_test = {'videosrc_0':'http://fs{servers}.trilulilu.ro/stream.php?type=video&'
                      'source=site&hash={hashs}&username={userids}&key={keys}'
                      '&format=flv-vp6&sig=&exp='.format(servers=vovu['server'],
                                                          hashs=vovu['hash'],
                                                          userids=vovu['userid'],
                                                          keys=vovu['key']),
-                     'http://fs{servers}.trilulilu.ro/stream.php?type=video&'
+                     'videosrc_1':'http://fs{servers}.trilulilu.ro/stream.php?type=video&'
                      'source=site&hash={hashs}&username={userids}&key={keys}'
                      '&format=mp4-360p&sig=&exp='.format(servers=vovu['server'],
                                                          hashs=vovu['hash'],
                                                          userids=vovu['userid'],
-                                                         keys=vovu['key'])]
+                                                         keys=vovu['key'])}
 
 
         # Name the file
@@ -53,19 +54,17 @@ class commands(object):
 
         # Search for the right link to download
         for link in video_test:
-            respond = requests.get(link, stream=True)
+            respond = requests.get(video_test[link], stream=True)
             file_size = int(respond.headers.get('Content-Length', 0))
             if file_size > 1048576:
                 # Check if the link was the mp4 or the flv format and choose name
-                if 'mp4' in link:
+                if 'mp4' in video_test[link]:
                     local_name_file = '{} - {}.mp4'.format(title_chooser[0],title_chooser[1])
-                elif 'flv' in link:
+                elif 'flv' in video_test[link]:
                     local_name_file = '{} - {}.flv'.format(title_chooser[0],title_chooser[1])
                 else:
                     print('Download stopped, not recognizable format!')
-                stdscr.addstr(0, 0,'Downloading now...\nFile:{}\nSize:{}M'.format(local_name_file, round(file_size / 1000/ 1000, 2)))
 
-                file_downloaded_size = 0
                 with open(local_name_file, 'wb') as f:
                     dl = 0
                     count = 0
@@ -79,31 +78,42 @@ class commands(object):
                             end_time_local = time.mktime(time.localtime())
                             f.flush()
                         if end_time_local > start_time_local:
-                            dl_speed_raw = dl / (end_time_local - start_time_local)
-                            stdscr.addstr(3, 0,'|{}|'.format('=' * 49))
-                            percent_text = dl * 100 / file_size
-
-                            for i in range(round(percent_text/2)):
-                                x = 49 - i
-                                stdscr.addstr(4, 0,'|{}{}|'.format('#' * i, '-' * x))
-
-                            # Format of completed (perfection)
-
-                            if len(str(round(percent_text))) == 1:
-                                stdscr.addstr(5, 0,'|{es}{cd}{ee}|'.format(es=('=' * 17),cd=(' {:.0f}% completed  '.format(percent_text)),ee =('=' * 17)))
-                            elif len(str(round(percent_text))) == 3:
-                                stdscr.addstr(5, 0,'|{es}{cd}{ee}|'.format(es=('=' * 17),cd=(' {:.0f}% completed '.format(percent_text)),ee =('=' * 16)))
-                            else:
-                                stdscr.addstr(5, 0,'|{es}{cd}{ee}|'.format(es=('=' * 17),cd=(' {:.0f}% completed '.format(percent_text)),ee =('=' * 17)))
-
-                            stdscr.addstr(6, 0,'Download Speed: {:.2f}Kbps \r'.format(dl_speed_raw / 1000))
-                            stdscr.refresh()
-
-# print('|{}|'.format('=' * 49))
-# print('|#')
-# print('|{es}{cd}{ee}|'.format(es=('=' * 17),cd=(' {}% completed '.format('30')),ee =('=' * 17)))
-
-# 5000 / 100 = 50 *
+                            dl_speed = round((dl / (end_time_local - start_time_local)) / 1000, 2)
+                            sys.stdout.flush()
+                            #print('Downloading now...\nFile:{}\nSize:{}M'.format(local_name_file, round(file_size / 1000/ 1000, 2)))
+                            percent_text = round(dl * 100 / file_size)
+                            percent_text4 = round(percent_text/4)
+                            #print(percent_text4)
+                            #teleies1='.' * x
+                            #asterisks1='*' * int(i/2)
+                            i = round(percent_text4)
+                            x = 12 - i
+                            z = 25 - i
+                            def asterisks0():
+                                if percent_text <= 50:
+                                    return '#' * i
+                                else:
+                                    return '#' * 12
+                            def teleies0():
+                                if percent_text < 10:
+                                    return '-' * (x + 1)
+                                elif percent_text <= 50:
+                                    return '-' * x
+                                else:
+                                    return ''
+                            def asterisks1():
+                                if percent_text > 50:
+                                    str_asterisk1 = '#' * (i - 12)
+                                    return '#' * (i - 12)
+                                else:
+                                    return ''
+                            def teleies1():
+                                if percent_text > 50:
+                                    return '-' * z
+                                else:
+                                    return '-' * 12
+                            sys.stdout.write('[{}{}{}%{}{}] Speed {}Kbps   \r'.format(asterisks0(),teleies0(),percent_text,asterisks1(),teleies1(),dl_speed))
+                            sys.stdout.flush()
 
 
 start = commands(url).main_function()
